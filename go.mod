@@ -1,4 +1,4 @@
-module github.com/OptareSolutions/goutils
+module github.com/OptareSolutions/goutils/v2
 
 go 1.19
 
