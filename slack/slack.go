@@ -1,6 +1,8 @@
 package slack
 
 import (
+	"os"
+
 	"github.com/slack-go/slack"
 )
 
@@ -13,27 +15,39 @@ const (
 	COLOR_NONE    = ""
 )
 
-type Receiver struct {
+type WebhookReceiver struct {
 	Webhook string
 	Channel string
 }
 
-func NewSlackReceiver(webhook, channel string) *Receiver {
-	return &Receiver{
+func NewSlackWebhookReceiver(webhook, channel string) *WebhookReceiver {
+	return &WebhookReceiver{
 		Webhook: webhook,
 		Channel: channel,
 	}
 }
 
-type Message struct {
+type BotReceiver struct {
+	Token   string
+	Channel string
+}
+
+func NewSlackBotReceiver(token, channel string) *BotReceiver {
+	return &BotReceiver{
+		Token:   token,
+		Channel: channel,
+	}
+}
+
+type TextMessage struct {
 	Username string
 	Icon     string
 	Title    string
 	Content  string
 }
 
-func NewMessage(username, icon, title, content string) *Message {
-	return &Message{
+func NewTextMessage(username, icon, title, content string) *TextMessage {
+	return &TextMessage{
 		Username: username,
 		Icon:     icon,
 		Title:    title,
@@ -41,8 +55,22 @@ func NewMessage(username, icon, title, content string) *Message {
 	}
 }
 
+type FileMessage struct {
+	FilePath  string
+	Filename  string
+	ChannelID string
+}
+
+func NewFileMessage(filePath, filename, channelID string) *FileMessage {
+	return &FileMessage{
+		FilePath:  filePath,
+		Filename:  filename,
+		ChannelID: channelID,
+	}
+}
+
 // SendPlain sends a plain message to slack (without markdown formatting)
-func (r Receiver) SendPlain(m Message) error {
+func (r WebhookReceiver) SendPlain(m TextMessage) error {
 	msg := slack.WebhookMessage{
 		Username: m.Username,
 		IconURL:  m.Icon,
@@ -54,11 +82,12 @@ func (r Receiver) SendPlain(m Message) error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
 // SendMarkdown sends a markdown formatted message to slack
-func (r Receiver) SendMarkdown(m Message, c MESSAGE_COLOR) error {
+func (r WebhookReceiver) SendMarkdown(m TextMessage, c MESSAGE_COLOR) error {
 	// blocks: send rich text (italics, code lines..)
 	// attachments: send files, html, code blocks/markdown...
 	att := slack.Attachment{
@@ -79,5 +108,30 @@ func (r Receiver) SendMarkdown(m Message, c MESSAGE_COLOR) error {
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+// SendFile sends a file to slack
+func (r BotReceiver) SendFile(m FileMessage) error {
+	f, err := os.Stat(m.FilePath)
+	if err != nil {
+		return err
+	}
+
+	api := slack.New(r.Token)
+
+	uploadParams := slack.UploadFileV2Parameters{
+		Filename: m.Filename,
+		File:     m.FilePath,
+		FileSize: int(f.Size()),
+		Channel:  r.Channel,
+	}
+
+	_, err = api.UploadFileV2(uploadParams)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
