@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/rs/zerolog v1.28.0
-	github.com/slack-go/slack v0.13.1
+	github.com/slack-go/slack v0.15.0
 	golang.org/x/exp v0.0.0-20221109205753-fc8884afc316
 )
 
